@@ -5,6 +5,8 @@
 #include "NormFeat.h"
 #include "EnergyDetector.h"
 #include "ComputeTest.h"
+#include "ComputeNorm.h"
+#include "Scoring.h"
  #include <iostream>
 #include <stdio.h>
 #include <dirent.h>
@@ -15,16 +17,20 @@
 void runEnergyDetector(int argc, char *argv[]);
 void runNormFeat(int argc, char *argv[]);
 void runComputeTest(int argc, char *argv[]);
+void runComputeNorm(int argc, char *argv[]);
+alize::String runScoring(int argc, char *argv[]);
 void clear(const char *dirname);
 void clearAll();
 void generateNdx(string wavFilane);
 string baseDirectory;
+//ros::NodeHandle n;
+//ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 
-
-void identifireCallback(const std_msgs::String::ConstPtr& msg)
+void identifireCallback(ros::NodeHandle &node_handle,const std_msgs::String::ConstPtr& msg)
 {
 
   string mfcc_commad,normConfig,testConfig,energyConfig,featureFilesPath,labelFilesPath,mixtureFilesPath,ndxFilename,outputFilename; 
+  string ndxImpFilename,outputImpFilename,tnormConfig,outputFileBaseName,decisionFileName,tnormfile;	
    
   featureFilesPath=baseDirectory+"/data/prm/";
 
@@ -57,9 +63,34 @@ void identifireCallback(const std_msgs::String::ConstPtr& msg)
   char * chNdxFilename= new char[ndxFilename.length() + 1];
   strcpy(chNdxFilename,ndxFilename.c_str());
 
+  ndxImpFilename=baseDirectory+"/ndx.imp.train";
+  char * chNdxImpFilename= new char[ndxImpFilename.length() + 1];
+  strcpy(chNdxImpFilename,ndxImpFilename.c_str());
+
   outputFilename=baseDirectory+"/res/"+msg->data+".res";
   char * chOutputFilename= new char[outputFilename.length() + 1];
   strcpy(chOutputFilename,outputFilename.c_str());
+
+  outputImpFilename=baseDirectory+"/res/"+msg->data+".imp.res";
+  char * chOutputImpFilename= new char[outputImpFilename.length() + 1];
+  strcpy(chOutputImpFilename,outputImpFilename.c_str());
+
+  tnormConfig=baseDirectory+"/cfg/ComputeNorm_tnorm.cfg";
+  char * chTnormConfig= new char[tnormConfig.length() + 1];
+  strcpy(chTnormConfig,tnormConfig.c_str());
+
+  outputFileBaseName=baseDirectory+"/res/"+msg->data+".final.res";
+  char * chOutputFileBaseName=new char[outputFileBaseName.length() + 1];
+  strcpy(chOutputFileBaseName,outputFileBaseName.c_str());
+
+  tnormfile=baseDirectory+"/res/"+msg->data+".final.res.tnorm";	
+  char * chTnormfile=new char[tnormfile.length() + 1];
+  strcpy(chTnormfile,tnormfile.c_str());
+
+  decisionFileName=baseDirectory+"/res/"+msg->data+".socre.nist";
+  char * chCecisionFileName=new char[decisionFileName.length() + 1];
+  strcpy(chCecisionFileName,decisionFileName.c_str());
+
 
   generateNdx(msg->data);
 
@@ -77,7 +108,31 @@ void identifireCallback(const std_msgs::String::ConstPtr& msg)
 
   char* computeTest[] ={"ComputeTest", "--config", chTestConfig,"--mixtureFilesPath",chMixtureFilesPath,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",  chLabelFilesPath,"--ndxFilename",chNdxFilename,"--outputFilename",chOutputFilename};
   runComputeTest( sizeof( computeTest ) / sizeof( computeTest[ 0 ] ) ,computeTest);
+
+  char* computeImpTest[] ={"ComputeTest", "--config", chTestConfig,"--mixtureFilesPath",chMixtureFilesPath,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",  chLabelFilesPath,"--ndxFilename",chNdxImpFilename,"--outputFilename",chOutputImpFilename};
+  runComputeTest( sizeof( computeImpTest ) / sizeof( computeImpTest[ 0 ] ) ,computeImpTest);	
   
+  char* computeNorm[] ={"ComputeNorm", "--config", chTnormConfig,"--testNistFile",chOutputFilename,"--tnormNistFile",chOutputImpFilename,"--outputFileBaseName",chOutputFileBaseName};
+  runComputeNorm( sizeof( computeNorm ) / sizeof( computeNorm[ 0 ] ) ,computeNorm);	
+
+  char* scoring[] ={"Scoring", "--mode", "NIST","--inputFile",chTnormfile,"--outputFile",chCecisionFileName,"--threshold","2","--segTypeTest", "1side", "--trainTypeTest", "1side", "--adaptationMode", "n"};
+
+  alize::String speaker=runScoring( sizeof( scoring ) / sizeof( scoring[ 0 ] ) ,scoring);
+  //std::cout<< speaker; 	
+
+  //ros::NodeHandle n;
+  ros::Publisher speaker_pub = node_handle.advertise<std_msgs::String>("speaker", 1000);
+  std_msgs::String msgs;
+
+	std::stringstream ss;
+    ss << "hello world ";
+    msgs.data = ss.str();
+
+  //msgs.data=speaker.c_str();	
+  ROS_INFO("%s",speaker.c_str());
+  speaker_pub.publish(msgs);
+  ros::spinOnce();
+
 }
 
 int main (int argc, char *argv[])
@@ -96,7 +151,7 @@ int main (int argc, char *argv[])
 
   ros::init(argc, argv, "identifire");
   ros::NodeHandle n;
-  ros::Subscriber sub = n.subscribe("/audio_file", 1000, identifireCallback);
+  ros::Subscriber sub = n.subscribe<std_msgs::String>("/audio_file", 1000,  boost::bind(&identifireCallback, boost::ref(n), _1) );
   ros::spin();
 
 
@@ -107,16 +162,26 @@ return 0;
 
 
 void generateNdx(string wavFilane){
-  string ndxFilesPath,wavFilane_;
+  string ndxFilesPath,wavFilane_,impFilesPath,impFilesPath_;
   ndxFilesPath=baseDirectory+"/_ndx.train"; 	
 
   std::ifstream ifs(ndxFilesPath.c_str());
-  std::string content,output_content;
+  std::string content,output_content,imp_content;
 
   content.assign( (std::istreambuf_iterator<char>(ifs) ),
                 (std::istreambuf_iterator<char>()    ) );
   std::cout << content;	
   ifs.close();
+
+  impFilesPath_=baseDirectory+"/imp.train"; 
+  std::ifstream ifp(impFilesPath_.c_str());
+  
+
+  imp_content.assign( (std::istreambuf_iterator<char>(ifp) ),
+                (std::istreambuf_iterator<char>()    ) );
+ 
+  ifp.close();
+
   
   ndxFilesPath=baseDirectory+"/ndx.train"; 	
   wavFilane_=wavFilane+" ";
@@ -125,6 +190,14 @@ void generateNdx(string wavFilane){
   myfile.open (ndxFilesPath.c_str());
   myfile << content;
   myfile.close();	
+
+  impFilesPath=baseDirectory+"/ndx.imp.train";
+  imp_content.insert(0,wavFilane_.c_str());
+  ofstream impNdxTrain;
+  impNdxTrain.open (impFilesPath.c_str());
+  impNdxTrain << imp_content;
+  impNdxTrain.close();
+
 }
 
 void clearAll(){
@@ -155,6 +228,43 @@ void clear(const char* dirname){
         remove(filepath);
     }
 
+}
+
+alize::String runScoring(int argc, char *argv[]){
+	alize::String currentSpeaker;
+	ConfigChecker cc;
+	cc.addStringParam("mode",true,true,"NIST,ETF,MDTM,leaveMaxOutTnorm");
+	cc.addStringParam("inputFile",true,true,"fooIn.nist");
+	cc.addStringParam("outputFile",true,true,"fooOut.nist");
+	cc.addStringParam("adaptationMode",false,true,"u|n");
+	cc.addStringParam("segTypeTest",false,true,"<10sec|...|1side>");
+	cc.addStringParam("trainTypeTest",false,true,"<10sec|...|1side>");
+	cc.addIntegerParam("threshold",false,true,"threshold on scores to accept or reject test");
+	cc.addIntegerParam("hard",false,false,"in ETF accept one speaker per test (identification)");
+	try {
+		CmdLine cmdLine(argc, argv);
+		if (cmdLine.displayVersionRequired()){cout <<"Version 2-beta"<<endl;} 
+		if (cmdLine.displayHelpRequired()){
+			cout << "************************************" << endl;
+			cout << "********** Scoring.exe *************" << endl;
+			cout << "************************************" << endl;
+			cout << endl;
+			cout << "Apply a decision on scores according to a thershold and Format test Files from ComputeTest into either NIST04 format, ETF format or MDTM format" << endl;
+			cout <<endl<<cc.getParamList()<<endl;
+		}
+		else {
+			Config tmp;
+			cmdLine.copyIntoConfig(tmp);
+			Config config;
+			if (tmp.existsParam("config")) config.load(tmp.getParam("config"));
+			cmdLine.copyIntoConfig(config);
+			cc.check(config);
+			config.setParam("minLLK","-200");
+			currentSpeaker=getSpeaker(config);
+		}  
+	}
+	catch (alize::Exception& e) {cout << e.toString() << endl << cc.getParamList() << endl;}
+return currentSpeaker;
 }
 
 
@@ -271,6 +381,87 @@ ConfigChecker cc;
 	}
 		catch (alize::Exception& e) {cout << e.toString() << endl << cc.getParamList()<< endl;}
 }
+
+
+void runComputeNorm(int argc, char *argv[]){
+
+  ConfigChecker cc;
+  cc.addStringParam("testNistFile",true, true,"target_seg score file");
+  cc.addStringParam("normType",true, true,"tnorm|znorm|ztnorm|tznorm, the normalization method (ztnorm is outputing both tnorm and ztnorm scores, tznorm both tznorm and znorm scores)");
+  cc.addStringParam("tnormNistFile",false,true,"imp_seg score file, impostor scores used for tnorm and ztnorm");
+  cc.addStringParam("znormNistFile",false,true,"target_imp score file, impostor scores used for znorm and ztnorm");
+  cc.addStringParam("ztnormNistFile",false,true,"imp_imp score file, impostor scores used for ztnorm and tznorm");
+  cc.addStringParam("outputFileBaseName",true, true,"the output file(s) basename");
+  cc.addStringParam("znormFilesExtension",false, true,"znorm output file extension (default='.znorm'");
+  cc.addStringParam("ztnormFilesExtension",false, true,"ztnorm output file extension (default='.znorm'");
+  cc.addStringParam("tnormFilesExtension",false, true,"tnorm output file extension (default='.tnorm'");
+  cc.addStringParam("tznormFilesExtension",false, true,"tznorm output file extension (default='.tznorm'");
+  cc.addStringParam("cohortFilePath",false, true,"cohort files path, for selectTargetDependentCohortInFile");
+  cc.addStringParam("cohortFileExt",false, true,"cohort files extension, for selectTargetDependentCohortInFile");
+  cc.addIntegerParam("maxIdNb",false, true,"Max target speakers - use to fix the max number of znorm score distributions (default=1000)");
+  cc.addIntegerParam("maxSegNb",false, true,"Max test segments - use to fix the max number of tnorm score distributions (default=1000)");
+  cc.addIntegerParam("maxScoreDistribNb",false, true,"Max scores per distribution - use to fix the max number of score in a distribution (default=1000)");
+  cc.addIntegerParam("fieldGender",false, true,"The field for gender in the nist file format (default=0)");
+  cc.addIntegerParam("fieldName",false, true,"The field for gender in the nist file format (default=1)");
+  cc.addIntegerParam("fieldDecision",false, true,"The field for gender in the nist file format (default=2)");
+  cc.addIntegerParam("fieldSeg",false, true,"The field for gender in the nist file format (default=3)");
+  cc.addIntegerParam("fieldLLR",false, true,"The field for gender in the nist file format (default=4)");
+  cc.addStringParam("impostorIDList",false, true,"If the option is set, it limits the used impostor scores to the one of the given list");
+  cc.addIntegerParam("meanMode",false,true,"Score distrib mean computation mode. 0 classical, 1 median (default 0)"); 
+  cc.addFloatParam("percentH",false,true,"% of higest scores discarded (default 0)");  
+  cc.addFloatParam("percentL",false,true,"% of lowest scores discarded (default 0)");  
+  
+  try {
+      CmdLine cmdLine(argc, argv);
+      if (cmdLine.displayHelpRequired()){
+	cout << "************************************" << endl;
+	cout << "********** ComputeNorm.exe *************" << endl;
+	cout << "************************************" << endl;
+	cout << endl;
+	cout << "Apply Z-T-ZT or ZT Norm to a Score File" << endl<< "ztnorm includes tnorm"<<endl;
+        cout <<endl<<cc.getParamList()<<endl;
+        
+      }
+      if (cmdLine.displayVersionRequired()){
+        cout <<"Version 3"<<endl;
+      } 
+      Config tmp;
+      cmdLine.copyIntoConfig(tmp);
+      Config config;
+      if (tmp.existsParam("config")) config.load(tmp.getParam("config"));
+      cmdLine.copyIntoConfig(config);
+      cc.check(config);
+      debug=config.getParam_debug();
+      if (config.existsParam("verbose"))verbose=config.getParam("verbose").toBool();else verbose=false;
+      if (verbose) verboseLevel=1;else verboseLevel=0;
+      if (config.existsParam("verboseLevel"))verboseLevel=config.getParam("verboseLevel").toLong();
+      if (verboseLevel>0) verbose=true;
+      // Initialize the default values for the parameters TODO : add this option in the addParam functions...
+ 	  if(!config.existsParam("znormFilesExtension")) config.setParam("znormFilesExtension",".znorm");
+ 	  if(!config.existsParam("tnormFilesExtension")) config.setParam("tnormFilesExtension",".tnorm");
+	  if(!config.existsParam("ztnormFilesExtension")) config.setParam("ztnormFilesExtension",".ztnorm");
+	  if(!config.existsParam("tznormFilesExtension")) config.setParam("tznormFilesExtension",".tznorm");
+	  if(!config.existsParam("maxIdNb")) config.setParam("maxIdNb","1000");
+	  if(!config.existsParam("maxSegNb")) config.setParam("maxSegNb","1000");
+	  if(!config.existsParam("maxScoreDistribNb")) config.setParam("maxScoreDistribNb","1000");
+	  if(!config.existsParam("fieldGender")) config.setParam("fieldGender","0");
+	  if(!config.existsParam("fieldName")) config.setParam("fieldName","1");
+	  if(!config.existsParam("fieldDecision")) config.setParam("fieldDecision","2");	  	  	  	  	  	  	   	  
+	  if(!config.existsParam("fieldSeg")) config.setParam("fieldSeg","3");	  	  	  	  	  	  	   	  
+	  if(!config.existsParam("fieldLLR")) config.setParam("fieldLLR","4");	  
+	  if(!config.existsParam("meanMode")) config.setParam("meanMode","0");
+	  if(!config.existsParam("percentH")) config.setParam("percentH","0.0");
+	  if(!config.existsParam("percentL")) config.setParam("percentL","0.0");
+	  
+	  
+	  	  	  	  	  	  	   	  
+
+      // start the prog!
+      ComputeNorm(config);
+    }
+catch (alize::Exception& e) {cout << e.toString() << endl << cc.getParamList()<< endl;}
+}
+
 
 void runEnergyDetector(int argc, char *argv[]){
 

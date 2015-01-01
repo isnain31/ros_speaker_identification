@@ -52,13 +52,12 @@ LIA_RAL admin [alize@univ-avignon.fr]
 Jean-Francois Bonastre [jean-francois.bonastre@univ-avignon.fr]
 */
 
-#if !defined(ALIZE_Scoring_h)
-#define ALIZE_Scoring_h
+#if !defined(ALIZE_ComputeNorm_h)
+#define ALIZE_ComputeNorm_h
 
 #include "alize.h"
+#include "liatools.h"
 
-        int Scoring(alize::Config& config);
-        String getSpeaker(alize::Config& config);
-	int WarpScores(alize::Config & config);
-	
-#endif // !defined(Scoring)
+        int ComputeNorm(alize::Config&);
+
+#endif // !defined(ComputeNorm_h)

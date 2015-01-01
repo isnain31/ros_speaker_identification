@@ -104,7 +104,7 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-add_executable(speak_ident_node src/main.cpp src/EnergyDetector.cpp src/NormFeat.cpp src/ComputeTest.cpp)
+add_executable(speak_ident_node src/main.cpp src/EnergyDetector.cpp src/NormFeat.cpp src/ComputeTest.cpp src/ComputeNorm.cpp src/Scoring.cpp)
 
 
 ## Add cmake target dependencies of the executable/library
