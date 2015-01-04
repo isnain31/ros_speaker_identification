@@ -20,7 +20,7 @@ def ear(argv):
     pub = rospy.Publisher('audio_file', String, queue_size=10)
     rospy.init_node('ear', anonymous=True)
     rate = rospy.Rate(1) # 10hz
-    WAVE_OUTPUT_FILENAME = argv[1]+"/data/"
+    WAVE_OUTPUT_FILENAME = argv[1]+"/capture/"
     print WAVE_OUTPUT_FILENAME
     while not rospy.is_shutdown():
     #while(1):

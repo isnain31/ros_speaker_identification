@@ -501,7 +501,7 @@ String getSpeaker(Config& config)
 	String currentSpeaker;
 	try{
 	currentSpeaker="unknown";
-	cout << currentSpeaker;
+	//cout << currentSpeaker;
 	if (config.existsParam("debug"))debug=true; else debug=false;  
 	if (config.existsParam("verbose"))verbose=true; else verbose=false;
 	String Mode = config.getParam("mode");

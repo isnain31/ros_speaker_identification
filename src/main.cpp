@@ -26,7 +26,7 @@ string baseDirectory;
 //ros::NodeHandle n;
 //ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 
-void identifireCallback(ros::NodeHandle &node_handle,const std_msgs::String::ConstPtr& msg)
+void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::ConstPtr& msg)
 {
 
   string mfcc_commad,normConfig,testConfig,energyConfig,featureFilesPath,labelFilesPath,mixtureFilesPath,ndxFilename,outputFilename; 
@@ -97,7 +97,7 @@ void identifireCallback(ros::NodeHandle &node_handle,const std_msgs::String::Con
   char * chInputFeatureFilename=new char[msg->data.length() + 1];
   strcpy(chInputFeatureFilename,msg->data.c_str());
 
-  mfcc_commad="sfbcep -F WAVE -p 24 -F WAVE  "+baseDirectory+"/data/"+msg->data+" "+baseDirectory+"/data/prm/"+msg->data+".mfcc";	
+  mfcc_commad="sfbcep -F WAVE -p 24 -F WAVE  "+baseDirectory+"/capture/"+msg->data+" "+baseDirectory+"/data/prm/"+msg->data+".mfcc";	
   system(mfcc_commad.c_str());
 
   char* EnergyDetect[] = {"EnergyDetector", "--config", chEnergyConfig,"--inputFeatureFilename",chInputFeatureFilename,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",chLabelFilesPath};
@@ -121,17 +121,19 @@ void identifireCallback(ros::NodeHandle &node_handle,const std_msgs::String::Con
   //std::cout<< speaker; 	
 
   //ros::NodeHandle n;
-  ros::Publisher speaker_pub = node_handle.advertise<std_msgs::String>("speaker", 1000);
-  std_msgs::String msgs;
-
-	std::stringstream ss;
-    ss << "hello world ";
-    msgs.data = ss.str();
+  //ros::Publisher speaker_pub = node_handle.advertise<std_msgs::String>("speaker", 1000);
+  
 
   //msgs.data=speaker.c_str();	
-  ROS_INFO("%s",speaker.c_str());
-  speaker_pub.publish(msgs);
-  ros::spinOnce();
+  
+   std_msgs::String msgs;
+   std::stringstream ss;
+   ss << speaker.c_str();
+   msgs.data = ss.str();	
+   ROS_INFO("%s",speaker.c_str());
+   speaker_pub.publish(msgs);
+   //ros::spinOnce();
+   
 
 }
 
@@ -151,7 +153,8 @@ int main (int argc, char *argv[])
 
   ros::init(argc, argv, "identifire");
   ros::NodeHandle n;
-  ros::Subscriber sub = n.subscribe<std_msgs::String>("/audio_file", 1000,  boost::bind(&identifireCallback, boost::ref(n), _1) );
+  ros::Publisher pub = n.advertise<std_msgs::String>("/speaker", 1000);
+  ros::Subscriber sub = n.subscribe<std_msgs::String>("/audio_file", 1000,  boost::bind(&identifireCallback, boost::ref(pub), _1) );
   ros::spin();
 
 
@@ -170,7 +173,7 @@ void generateNdx(string wavFilane){
 
   content.assign( (std::istreambuf_iterator<char>(ifs) ),
                 (std::istreambuf_iterator<char>()    ) );
-  std::cout << content;	
+  //std::cout << content;	
   ifs.close();
 
   impFilesPath_=baseDirectory+"/imp.train"; 
@@ -202,10 +205,12 @@ void generateNdx(string wavFilane){
 
 void clearAll(){
 
-	string featureFilesPath,labelFilesPath,outputFilesPath;
+	string featureFilesPath,labelFilesPath,outputFilesPath,capturedFilesPath;
 	featureFilesPath=baseDirectory+"/data/prm/";
 	labelFilesPath=baseDirectory+"/data/lbl/";
 	outputFilesPath=baseDirectory+"/res/";
+	capturedFilesPath=baseDirectory+"/capture/";
+	clear(capturedFilesPath.c_str());
 	clear(featureFilesPath.c_str());
 	clear(labelFilesPath.c_str());
 	clear(outputFilesPath.c_str());
