@@ -17,6 +17,9 @@ RECORD_SECONDS = 5
 
 
 def ear(argv):
+    if(len(argv)<2):
+	print "base file location is not given. System will exit now"	
+	sys.exit()
     pub = rospy.Publisher('audio_file', String, queue_size=10)
     rospy.init_node('ear', anonymous=True)
     rate = rospy.Rate(1) # 10hz
