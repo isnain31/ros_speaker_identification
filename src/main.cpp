@@ -23,6 +23,7 @@ void clear(const char *dirname);
 void clearAll();
 void generateNdx(string wavFilane);
 string baseDirectory;
+char * thresHold;
 //ros::NodeHandle n;
 //ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 
@@ -115,7 +116,7 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
   char* computeNorm[] ={"ComputeNorm", "--config", chTnormConfig,"--testNistFile",chOutputFilename,"--tnormNistFile",chOutputImpFilename,"--outputFileBaseName",chOutputFileBaseName};
   runComputeNorm( sizeof( computeNorm ) / sizeof( computeNorm[ 0 ] ) ,computeNorm);	
 
-  char* scoring[] ={"Scoring", "--mode", "NIST","--inputFile",chTnormfile,"--outputFile",chCecisionFileName,"--threshold","2","--segTypeTest", "1side", "--trainTypeTest", "1side", "--adaptationMode", "n"};
+  char* scoring[] ={"Scoring", "--mode", "NIST","--inputFile",chTnormfile,"--outputFile",chCecisionFileName,"--threshold",thresHold,"--segTypeTest", "1side", "--trainTypeTest", "1side", "--adaptationMode", "n"};
 
   alize::String speaker=runScoring( sizeof( scoring ) / sizeof( scoring[ 0 ] ) ,scoring);
   //std::cout<< speaker; 	
@@ -143,10 +144,17 @@ int main (int argc, char *argv[])
   using namespace alize;
 
   if(argc<2)	{
-	std::cout<< "Please specify the file name";
+	ROS_INFO("%s", "Please specify the file name");
 	return 0;
-  }	
-
+  }
+	
+  if(argc<3)	{ 	
+  	ROS_INFO("%s", "No threshold is given, using default value 2");
+        thresHold="2";
+  }
+  else
+	thresHold=argv[2];
+	
   baseDirectory=(string)argv[1];
 
   clearAll();
