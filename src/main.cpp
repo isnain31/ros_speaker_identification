@@ -24,6 +24,7 @@ void clearAll();
 void generateNdx(string wavFilane);
 string baseDirectory;
 char * thresHold;
+int znorm;
 //ros::NodeHandle n;
 //ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 
@@ -31,7 +32,7 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
 {
 
   string mfcc_commad,normConfig,testConfig,energyConfig,featureFilesPath,labelFilesPath,mixtureFilesPath,ndxFilename,outputFilename; 
-  string ndxImpFilename,outputImpFilename,tnormConfig,outputFileBaseName,decisionFileName,tnormfile;	
+  string ndxImpFilename,outputImpFilename,tnormConfig,outputFileBaseName,decisionFileName,tnormfile,znormConfig,outputImpzFilename;	
    
   featureFilesPath=baseDirectory+"/data/prm/";
 
@@ -76,17 +77,33 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
   char * chOutputImpFilename= new char[outputImpFilename.length() + 1];
   strcpy(chOutputImpFilename,outputImpFilename.c_str());
 
+
+  outputImpzFilename=baseDirectory+"/result.impz.res";
+  char * chOutputImpzFilename= new char[outputImpzFilename.length() + 1];
+  strcpy(chOutputImpzFilename,outputImpzFilename.c_str());
+
+
   tnormConfig=baseDirectory+"/cfg/ComputeNorm_tnorm.cfg";
   char * chTnormConfig= new char[tnormConfig.length() + 1];
   strcpy(chTnormConfig,tnormConfig.c_str());
+
+  znormConfig=baseDirectory+"/cfg/ComputeNorm_znorm.cfg";
+  char * chZnormConfig= new char[znormConfig.length() + 1];
+  strcpy(chZnormConfig,znormConfig.c_str());
+
 
   outputFileBaseName=baseDirectory+"/res/"+msg->data+".final.res";
   char * chOutputFileBaseName=new char[outputFileBaseName.length() + 1];
   strcpy(chOutputFileBaseName,outputFileBaseName.c_str());
 
-  tnormfile=baseDirectory+"/res/"+msg->data+".final.res.tnorm";	
+  if(znorm==0)
+    tnormfile=baseDirectory+"/res/"+msg->data+".final.res.tnorm";	
+  else 
+    tnormfile=baseDirectory+"/res/"+msg->data+".final.res.znorm";	 
   char * chTnormfile=new char[tnormfile.length() + 1];
   strcpy(chTnormfile,tnormfile.c_str());
+
+  
 
   decisionFileName=baseDirectory+"/res/"+msg->data+".socre.nist";
   char * chCecisionFileName=new char[decisionFileName.length() + 1];
@@ -110,12 +127,20 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
   char* computeTest[] ={"ComputeTest", "--config", chTestConfig,"--mixtureFilesPath",chMixtureFilesPath,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",  chLabelFilesPath,"--ndxFilename",chNdxFilename,"--outputFilename",chOutputFilename};
   runComputeTest( sizeof( computeTest ) / sizeof( computeTest[ 0 ] ) ,computeTest);
 
+  if(znorm==0){
+  // impostor training based on an utterance
   char* computeImpTest[] ={"ComputeTest", "--config", chTestConfig,"--mixtureFilesPath",chMixtureFilesPath,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",  chLabelFilesPath,"--ndxFilename",chNdxImpFilename,"--outputFilename",chOutputImpFilename};
   runComputeTest( sizeof( computeImpTest ) / sizeof( computeImpTest[ 0 ] ) ,computeImpTest);	
   
   char* computeNorm[] ={"ComputeNorm", "--config", chTnormConfig,"--testNistFile",chOutputFilename,"--tnormNistFile",chOutputImpFilename,"--outputFileBaseName",chOutputFileBaseName};
   runComputeNorm( sizeof( computeNorm ) / sizeof( computeNorm[ 0 ] ) ,computeNorm);	
+  }
+  else{
 
+    char* computeNorm[] ={"ComputeNorm", "--config", chZnormConfig,"--testNistFile",chOutputFilename,"--znormNistFile",chOutputImpzFilename,"--outputFileBaseName",chOutputFileBaseName};
+  runComputeNorm( sizeof( computeNorm ) / sizeof( computeNorm[ 0 ] ) ,computeNorm);
+  }
+  
   char* scoring[] ={"Scoring", "--mode", "NIST","--inputFile",chTnormfile,"--outputFile",chCecisionFileName,"--threshold",thresHold,"--segTypeTest", "1side", "--trainTypeTest", "1side", "--adaptationMode", "n"};
 
   alize::String speaker=runScoring( sizeof( scoring ) / sizeof( scoring[ 0 ] ) ,scoring);
@@ -154,6 +179,23 @@ int main (int argc, char *argv[])
   }
   else
 	thresHold=argv[2];
+  
+  if(argc<4)	{ 	
+  	ROS_INFO("%s", "Using T-Norm");
+        znorm=0;
+  }
+  else{
+      if(strcmp(argv[3],"znorm")==0){
+	znorm=1;
+        ROS_INFO("%s", "Using Z-Norm");
+      }
+      else if(strcmp(argv[3],"tnorm")==0){
+	znorm=0;
+        ROS_INFO("%s", "Using T-Norm");
+      }
+      else
+        ROS_INFO("%s", "Invalid norm type ");
+  }	
 	
   baseDirectory=(string)argv[1];
 

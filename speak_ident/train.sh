@@ -4,6 +4,7 @@
 DATADIR="traindata"
 FEATUREDIR="feature"
 BGDATADIR="background"
+IMPOSTORDIR="impostor"
 
 DATADIRS=`ls -l $DATADIR | egrep '^d' | awk '{print $9}' ` 
 
@@ -12,7 +13,7 @@ rm -rf ${FEATUREDIR}/*
 rm -rf ndx/*
 rm -rf lst/*
 rm _ndx.train
-
+rm impz.ndx
 
 echo "background training"
 
@@ -27,8 +28,6 @@ for WAVFILE in $RAWFILES
 	done
 
 TrainWorld --config cfg/TrainWorld.cfg
-TrainTarget --config cfg/TrainImposter.cfg
-
 
 
 echo "extracting features, detecting voiced and unvoiced frame and normalizing them to cancel background noise this may take some time"
@@ -63,4 +62,27 @@ echo "proessing of data done training begins"
 #TrainWorld --config cfg/TrainWorld.cfg
 TrainTarget --config cfg/TrainTarget.cfg
 
+
+echo "impostor training"
+
+
+ndxtrainz=$(<_ndx.train)
+RAWFILES=` ls -l $IMPOSTORDIR | awk '{print $9}' `
+
+for WAVFILE in $RAWFILES
+	do
+		rm ${FEATUREDIR}/${WAVFILE}.mfcc
+		rm ${FEATUREDIR}/${WAVFILE}.lbl
+		rm ${FEATUREDIR}/${WAVFILE}.norm.prm
+ 	        sfbcep -F WAVE -p 24 $IMPOSTORDIR/${WAVFILE} ${FEATUREDIR}/${WAVFILE}.mfcc
+		EnergyDetector --config cfg/EnergyDetector.cfg --inputFeatureFilename  ${WAVFILE} 
+		NormFeat --config cfg/NormFeat.cfg --inputFeatureFilename  ${WAVFILE} 
+		echo ${WAVFILE}" "${ndxtrainz}>> impz.ndx
+	done
+
+
+
+TrainTarget --config cfg/TrainImposter.cfg
+
+ComputeTest --config cfg/ComputeImpzTest.cfg
 
