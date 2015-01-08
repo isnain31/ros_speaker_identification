@@ -13,6 +13,7 @@ step 3: List the impostor model name in imp.train and indicate which audio files
 		imposter3 imposter3.wav
 
 step 4: Open command prompt and browse to the directory and run 
+
 			$ bash train.sh
 
 step 5: After the training is done , run the node ear using the command :
