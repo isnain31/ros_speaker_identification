@@ -52,6 +52,13 @@ LIA_RAL admin [alize@univ-avignon.fr]
 Jean-Francois Bonastre [jean-francois.bonastre@univ-avignon.fr]
 */
 
+/*
+
+This file has been modifed partially to allow the final decision to return to 
+the main program.
+
+*/
+
 #if !defined(ALIZE_Scoring_cpp)
 #define ALIZE_Scoring_cpp
 
@@ -492,7 +499,11 @@ catch (Exception& e)
 return 0;	
 }
 
+/*
 
+This function has been modified from original scoring implmenetation to return the detected speaker name
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 String getSpeaker(Config& config)
 {
 

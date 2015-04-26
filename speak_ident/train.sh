@@ -1,6 +1,27 @@
 #!/bin/bash
 
-#DATADIR="/home/is9/alize/data/PCC/PCCdata16kHz/train/reverberated"
+<<'COMMENT'
+This file is part of speak_ident which is a ROS package for speaker identification
+Spro 4.0, ALIZE toolkit, LIA_RAL, pyAudio are required to use this package.
+
+This package uses partially modfied code of LIA_RAL's EnergyDetector.cpp
+ComputeNorm.cpp TrainWorld.cpp NormFeat.cpp Scoring.cpp TrainWorld.cpp.
+And uses the rest as it is.
+
+speak_ident is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or any later version.
+
+speak_ident is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+Copyright (C) 2014
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+COMMENT
+
 DATADIR="traindata"
 FEATUREDIR="feature"
 BGDATADIR="background"

@@ -1,3 +1,24 @@
+/*
+This file is part of speak_ident which is a ROS package for speaker identification
+Spro 4.0, ALIZE toolkit, LIA_RAL, pyAudio are required to use this package.
+
+This package uses partially modfied code of LIA_RAL's EnergyDetector.cpp
+ComputeNorm.cpp TrainWorld.cpp NormFeat.cpp Scoring.cpp TrainWorld.cpp.
+And uses the rest as it is.
+
+speak_ident is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or any later version.
+
+speak_ident is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+Copyright (C) 2014
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "liatools.h"
@@ -25,8 +46,6 @@ void generateNdx(string wavFilane);
 string baseDirectory;
 char * thresHold;
 int znorm;
-//ros::NodeHandle n;
-//ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 
 void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::ConstPtr& msg)
 {
@@ -127,7 +146,7 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
   char* computeTest[] ={"ComputeTest", "--config", chTestConfig,"--mixtureFilesPath",chMixtureFilesPath,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",  chLabelFilesPath,"--ndxFilename",chNdxFilename,"--outputFilename",chOutputFilename};
   runComputeTest( sizeof( computeTest ) / sizeof( computeTest[ 0 ] ) ,computeTest);
 
-  if(znorm==0){
+  if(znorm==0){ // T - Norm
   // impostor training based on an utterance
   char* computeImpTest[] ={"ComputeTest", "--config", chTestConfig,"--mixtureFilesPath",chMixtureFilesPath,"--featureFilesPath",chFeatureFilesPath,"--labelFilesPath",  chLabelFilesPath,"--ndxFilename",chNdxImpFilename,"--outputFilename",chOutputImpFilename};
   runComputeTest( sizeof( computeImpTest ) / sizeof( computeImpTest[ 0 ] ) ,computeImpTest);	
@@ -135,7 +154,7 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
   char* computeNorm[] ={"ComputeNorm", "--config", chTnormConfig,"--testNistFile",chOutputFilename,"--tnormNistFile",chOutputImpFilename,"--outputFileBaseName",chOutputFileBaseName};
   runComputeNorm( sizeof( computeNorm ) / sizeof( computeNorm[ 0 ] ) ,computeNorm);	
   }
-  else{
+  else{  // Z- Norm
 
     char* computeNorm[] ={"ComputeNorm", "--config", chZnormConfig,"--testNistFile",chOutputFilename,"--znormNistFile",chOutputImpzFilename,"--outputFileBaseName",chOutputFileBaseName};
   runComputeNorm( sizeof( computeNorm ) / sizeof( computeNorm[ 0 ] ) ,computeNorm);
@@ -144,23 +163,13 @@ void identifireCallback(ros::Publisher &speaker_pub,const std_msgs::String::Cons
   char* scoring[] ={"Scoring", "--mode", "NIST","--inputFile",chTnormfile,"--outputFile",chCecisionFileName,"--threshold",thresHold,"--segTypeTest", "1side", "--trainTypeTest", "1side", "--adaptationMode", "n"};
 
   alize::String speaker=runScoring( sizeof( scoring ) / sizeof( scoring[ 0 ] ) ,scoring);
-  //std::cout<< speaker; 	
-
-  //ros::NodeHandle n;
-  //ros::Publisher speaker_pub = node_handle.advertise<std_msgs::String>("speaker", 1000);
   
-
-  //msgs.data=speaker.c_str();	
-  
-   std_msgs::String msgs;
-   std::stringstream ss;
-   ss << speaker.c_str();
-   msgs.data = ss.str();	
-   ROS_INFO("%s",speaker.c_str());
-   speaker_pub.publish(msgs);
-   //ros::spinOnce();
-   
-
+  std_msgs::String msgs;
+  std::stringstream ss;
+  ss << speaker.c_str();
+  msgs.data = ss.str();	
+  ROS_INFO("%s",speaker.c_str());
+  speaker_pub.publish(msgs);
 }
 
 int main (int argc, char *argv[])
@@ -213,7 +222,7 @@ int main (int argc, char *argv[])
 return 0;
 }
 
-
+/* generates all necessary ndx files */
 void generateNdx(string wavFilane){
   string ndxFilesPath,wavFilane_,impFilesPath,impFilesPath_;
   ndxFilesPath=baseDirectory+"/_ndx.train"; 	
@@ -223,7 +232,6 @@ void generateNdx(string wavFilane){
 
   content.assign( (std::istreambuf_iterator<char>(ifs) ),
                 (std::istreambuf_iterator<char>()    ) );
-  //std::cout << content;	
   ifs.close();
 
   impFilesPath_=baseDirectory+"/imp.train"; 
@@ -253,6 +261,8 @@ void generateNdx(string wavFilane){
 
 }
 
+
+/* clears all necessary directories  */
 void clearAll(){
 
 	string featureFilesPath,labelFilesPath,outputFilesPath,capturedFilesPath;
@@ -284,6 +294,13 @@ void clear(const char* dirname){
     }
 
 }
+
+/*
+
+Taken from ScoringMain.cpp of LIA_RAL with modification to be suitable enough to use 
+in this package
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 
 alize::String runScoring(int argc, char *argv[]){
 	alize::String currentSpeaker;
@@ -322,6 +339,13 @@ alize::String runScoring(int argc, char *argv[]){
 return currentSpeaker;
 }
 
+
+/*
+
+Taken from NormFeatMain.cpp of LIA_RAL with modification to be suitable enough to use 
+in this package
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 
 void runNormFeat(int argc, char *argv[]){
 
@@ -386,7 +410,12 @@ ConfigChecker cc;
 
 }
 
+/*
 
+Taken from ComputeTestMain.cpp of LIA_RAL with modification to be suitable enough to use 
+in this package
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 void runComputeTest(int argc, char *argv[]){
 
 ConfigChecker cc;
@@ -437,7 +466,12 @@ ConfigChecker cc;
 		catch (alize::Exception& e) {cout << e.toString() << endl << cc.getParamList()<< endl;}
 }
 
+/*
 
+Taken from ComputeNormMain.cpp of LIA_RAL with modification to be suitable enough to use 
+in this package
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 void runComputeNorm(int argc, char *argv[]){
 
   ConfigChecker cc;
@@ -517,7 +551,12 @@ void runComputeNorm(int argc, char *argv[]){
 catch (alize::Exception& e) {cout << e.toString() << endl << cc.getParamList()<< endl;}
 }
 
+/*
 
+Taken from EnergyDetectorMain.cpp of LIA_RAL with modification to be suitable enough to use 
+in this package
+Isnain Siddique [isnain.siddique@smail.inf.h-brs.de]
+*/
 void runEnergyDetector(int argc, char *argv[]){
 
 ConfigChecker cc;

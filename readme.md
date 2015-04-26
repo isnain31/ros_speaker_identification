@@ -29,3 +29,31 @@ last two parameters are optional default values of this two parameters are 2 and
 step 7: open another command prompt type rostopic echo /speaker
 
 step 8: Testing platform does not need these directories : traindata,background and impostor 
+
+
+Installing libraries:
+
+spro 
+==========
+for 64 bit architecture use the following commands at first:
+
+1. export CFLAGS=-m32
+2. export CXXFLAGS=-m32
+
+and install
+
+1. sudo apt-get install g++-multilib
+2. sudo apt-get install g++-4.4-multilib
+
+in case of the following error: 
+
+aclocal 1.6 : command not found
+===============================
+1. install automake
+2. changed all makefile aclocal 1.6 and automake 1.6 to aclocal 1.11 and automake 1.11
+
+If your gcc version is higher than gcc 4.4 use these commands
+
+1. sudo apt-get install g++-4.4 g++-4.5
+2. cd spro-4.0/ && export CC=gcc-4.4 && ./configure && make
+
